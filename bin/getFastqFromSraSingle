@@ -1,0 +1,27 @@
+#!/bin/bash
+stringWithRunAccession="$1"
+outputPath="$2"
+
+runId=$(perl -ne 'm{([DES]RR\d+)[^/]*$} and print $1' <<< "$stringWithRunAccession")
+
+if [ ! "$runId" ]; then
+  echo "Could not find run accession from input: $stringWithRunAccession"
+  exit 1
+fi
+
+prefetch -X 9999999999999 -O . $runId
+
+if [ ! -f "./${runId}.sra" ] ; then
+  echo "fastq-dump didn't work as expected? ./${runId}.sra expected"
+  exit 1
+fi
+
+fastq-dump -B --defline-seq '@$si' --defline-qual '+'  --split-spot --skip-technical ./${runId}.sra
+
+if [ ! -f "${runId}.fastq" ] ; then
+  echo "fastq-dump didn't work as expected? ${runId}.fastq expected"
+  exit 1
+fi
+
+rm -v ./${runId}.sra
+mv -v ${runId}.fastq "$outputPath"
