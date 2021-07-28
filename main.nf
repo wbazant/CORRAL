@@ -113,7 +113,7 @@ process bowtie2Paired {
 }
 
 process summarizeAlignments {
-  publishDir 'summarizedAlignments'
+  publishDir "${params.resultDir}/summarizedAlignments"
 
   label 'summarize'
 
@@ -137,7 +137,7 @@ process summarizeAlignments {
 }
 
 process filterPostSummarize {
-  publishDir 'filteredAlignmentSummaries'
+  publishDir "${params.resultDir}/filteredAlignmentSummaries"
 
   input:
   val(sample)
@@ -154,7 +154,7 @@ process filterPostSummarize {
 }
 
 process makeTsv {
-  publishDir params.resultDir, mode: 'move'  
+  publishDir params.resultDir, mode: 'move', overwrite: true  
 
   input:
   file("*.taxon-to-cpm.tsv")
@@ -187,5 +187,21 @@ workflow runSingleWget {
   main:
   input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   xs = singleWget(input)
+  makeTsv(xs.collect())
+}
+
+def pairedWget(input) {
+  reads = downloadPairedWget(input)
+  alignments = bowtie2Paired(reads)
+  numReads = countReads(reads)
+  return postAlign(input.map{it[0]}, numReads, alignments)
+}
+
+
+workflow runPairedWget {
+
+  main:
+  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
+  xs = pairedWget(input)
   makeTsv(xs.collect())
 }
