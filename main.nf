@@ -88,7 +88,7 @@ process bowtie2Single {
   script:
   """
   bowtie2 --omit-sec-seq --no-discordant --no-unal \
-    -x ncbi_eukprot_met_arch_markers.fna \
+    -x ${params.refdb} \
     -U ${readsFastq} \
     -S alignmentsSingle.sam 
   """
@@ -105,7 +105,7 @@ process bowtie2Paired {
   script:
   """
   bowtie2 --omit-sec-seq --no-discordant --no-unal \
-    -x ncbi_eukprot_met_arch_markers.fna \
+    -x ${params.refdb} \
     -1 ${readsFastqR1} \
     -2 ${readsFastqR2} \
     -S alignmentsPaired.sam
@@ -128,7 +128,7 @@ process summarizeAlignments {
   """
   summarize_marker_alignments \
     --input ${alignmentsSam} \
-    --refdb-marker-to-taxon-id-path ${config.marker_to_taxon_id_path} \
+    --refdb-marker-to-taxon-id-path ${params.marker_to_taxon_id_path} \
     --refdb-format eukprot \
     --output-type taxon_all \
     --num-reads \$(cat ${numReadsPath}) \
@@ -157,14 +157,14 @@ process makeTsv {
   publishDir params.resultDir, mode: 'move'  
 
   input:
-  file("*")
+  file("*.taxon-to-cpm.tsv")
 
   output:
   file("cpms.tsv")
 
   script:
   """
-  makeTsv.pl . > cpms.tsv
+  makeTsv.pl . .taxon-to-cpm.tsv > cpms.tsv
   """
 }
 
@@ -186,6 +186,6 @@ workflow runSingleWget {
 
   main:
   input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
-  xs =singleWget(input)
+  xs = singleWget(input)
   makeTsv(xs.collect())
 }

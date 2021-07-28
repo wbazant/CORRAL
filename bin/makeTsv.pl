@@ -4,16 +4,17 @@ use warnings;
 use feature 'say';
 
 
-my ($dir) = @ARGV;
-die "Usage: $0 dir") unless -d $dir;
+my ($dir, $pattern) = @ARGV;
+die "Usage: $0 dir" unless -d $dir;
 
 opendir(my $dh, $dir) || die "Can't opendir $dir: $!";
-my @files = readdir($dh);
+my @files = grep {$_=~m{$pattern}} readdir($dh);
 closedir $dh;
 
 die "No files in input directory" unless @files;
 
 my %keyColumnLabels;
+my %valueColumnLabels;
 
 my %result;
 
@@ -43,7 +44,7 @@ die "Ambiguous key labels: ".join(", ", $k, @ks) unless $k and not @ks;
 
 
 say join "\t", $k, @valueColumnLabels;
-for my $key (sort keys $result){
+for my $key (sort keys %result){
   my %h = %{$result{$key}};
   say join "\t", $key, map {$_ // ""} @h{@valueColumnLabels};
 }
