@@ -36,14 +36,14 @@ process downloadSingleSra {
   label 'download'
 
   input:
-  tuple val(sample), val(stringWithRunAccession)
+  tuple val(sample), val(runAccession)
 
   output:
   file("${sample}.fastq")
 
   script:
   """
-  getFastqFromSraSingle $stringWithRunAccession "${sample}.fastq
+  getFastqFromSraSingle $runAccession ${sample}.fastq
   """
 }
 
@@ -52,14 +52,14 @@ process downloadPairedSra {
   label 'download'
 
   input:
-  tuple val(sample), val(stringWithRunAccession)
+  tuple val(sample), val(runAccession)
 
   output:
   tuple file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
 
   script:
   """
-  getFastqFromSraPaired $stringWithRunAccession ${sample}_R1.fastq ${sample}_R2.fastq
+  getFastqFromSraPaired $runAccession ${sample}_R1.fastq ${sample}_R2.fastq
   """
 }
 process countReads {
@@ -242,13 +242,13 @@ workflow runPairedWget {
 }
 
 workflow runSingleSra {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
+  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.length == 1 ? [it[0], it[0]] : it}
   xs = singleSra(input)
   makeTsv(xs.collect())
 }
 
 workflow runPairedSra {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
+  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.length == 1 ? [it[0], it[0]] : it}
   xs = pairedSra(input)
   makeTsv(xs.collect())
 }
