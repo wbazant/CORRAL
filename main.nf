@@ -21,7 +21,7 @@ process downloadPairedWget {
   tuple val(sample), val(fastqUrlR1), val(fastqUrlR2)
 
   output:
-  file("${sample}_R1.fastq.gz"), file("${sample}_R2.fastq.gz")
+  tuple file("${sample}_R1.fastq.gz"), file("${sample}_R2.fastq.gz")
 
   script:
   """
@@ -55,7 +55,7 @@ process downloadPairedSra {
   tuple val(sample), val(stringWithRunAccession)
 
   output:
-  file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
+  tuple file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
 
   script:
   """
@@ -112,17 +112,41 @@ process bowtie2Paired {
   """
 }
 
-process summarizeAlignments {
-  publishDir "${params.resultDir}/summarizedAlignments"
+process summarizeAlignmentsIntoMarkers {
+  publishDir "${params.resultDir}/markers"
 
-  label 'summarize'
+  label 'postAlign'
 
   input:
+  val(sample)
   path(numReadsPath)
   path(alignmentsSam)
 
   output:
-  path("summarizedAlignments.tsv")
+  path("${sample}.markers.tsv")
+
+  script:
+  """
+  summarize_marker_alignments \
+    --input ${alignmentsSam} \
+    --refdb-marker-to-taxon-id-path ${params.marker_to_taxon_id_path} \
+    --refdb-format eukprot \
+    --output-type marker_all \
+    --num-reads \$(cat ${numReadsPath}) \
+    --output ${sample}.markers.tsv 
+  """
+}
+process summarizeAlignmentsIntoTaxa {
+  publishDir "${params.resultDir}/taxa"
+  label 'postAlign'
+
+  input:
+  val(sample)
+  path(numReadsPath)
+  path(alignmentsSam)
+
+  output:
+  path("${sample}.taxa.tsv")
 
   script:
   """
@@ -132,12 +156,13 @@ process summarizeAlignments {
     --refdb-format eukprot \
     --output-type taxon_all \
     --num-reads \$(cat ${numReadsPath}) \
-    --output summarizedAlignments.tsv 
+    --output ${sample}.taxa.tsv 
   """
 }
 
 process filterPostSummarize {
-  publishDir "${params.resultDir}/filteredAlignmentSummaries"
+  publishDir "${params.resultDir}/taxon-to-cpm"
+  label 'postAlign'
 
   input:
   val(sample)
@@ -155,6 +180,7 @@ process filterPostSummarize {
 
 process makeTsv {
   publishDir params.resultDir, mode: 'move', overwrite: true  
+  label 'postAlign'
 
   input:
   file("*.taxon-to-cpm.tsv")
@@ -168,9 +194,10 @@ process makeTsv {
   """
 }
 
-def postAlign(sampleId, numReadsPath, alignmentsSam) {
-  sas = summarizeAlignments(numReadsPath, alignmentsSam)
-  fps = filterPostSummarize(sampleId, sas)
+def postAlign(sample, numReadsPath, alignmentsSam) {
+  summarizeAlignmentsIntoMarkers(sample, numReadsPath, alignmentsSam)
+  sas = summarizeAlignmentsIntoTaxa(sample, numReadsPath, alignmentsSam)
+  fps = filterPostSummarize(sample, sas)
   return fps
 }
 
@@ -181,27 +208,47 @@ def singleWget(input) {
   return postAlign(input.map{it[0]}, numReads, alignments)
 }
 
+def pairedWget(input) {
+  reads = downloadPairedWget(input)
+  alignments = bowtie2Paired(reads)
+  numReads = countReads(reads.map{it[0]})
+  return postAlign(input.map{it[0]}, numReads, alignments)
+}
+
+def singleSra(input) {
+  reads = downloadSingleSra(input)
+  alignments = bowtie2Single(reads)
+  numReads = countReads(reads)
+  return postAlign(input.map{it[0]}, numReads, alignments)
+}
+
+def pairedSra(input) {
+  reads = downloadPairedSra(input)
+  alignments = bowtie2Paired(reads)
+  numReads = countReads(reads.map{it[0]})
+  return postAlign(input.map{it[0]}, numReads, alignments)
+}
 
 workflow runSingleWget {
-
-  main:
   input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   xs = singleWget(input)
   makeTsv(xs.collect())
 }
 
-def pairedWget(input) {
-  reads = downloadPairedWget(input)
-  alignments = bowtie2Paired(reads)
-  numReads = countReads(reads)
-  return postAlign(input.map{it[0]}, numReads, alignments)
-}
-
-
 workflow runPairedWget {
-
-  main:
   input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   xs = pairedWget(input)
+  makeTsv(xs.collect())
+}
+
+workflow runSingleSra {
+  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
+  xs = singleSra(input)
+  makeTsv(xs.collect())
+}
+
+workflow runPairedSra {
+  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
+  xs = pairedSra(input)
   makeTsv(xs.collect())
 }
