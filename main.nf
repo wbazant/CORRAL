@@ -242,13 +242,13 @@ workflow runPairedWget {
 }
 
 workflow runSingleSra {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.length == 1 ? [it[0], it[0]] : it}
+  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.size() == 1 ? [it[0], it[0]] : it}
   xs = singleSra(input)
   makeTsv(xs.collect())
 }
 
 workflow runPairedSra {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.length == 1 ? [it[0], it[0]] : it}
+  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.size() == 1 ? [it[0], it[0]] : it}
   xs = pairedSra(input)
   makeTsv(xs.collect())
 }
