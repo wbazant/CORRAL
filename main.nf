@@ -229,26 +229,21 @@ def pairedSra(input) {
   return postAlign(input.map{it[0]}, numReads, alignments)
 }
 
-workflow runSingleWget {
+workflow {
   input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
-  xs = singleWget(input)
-  makeTsv(xs.collect())
-}
+  if (params.downloadMethod == 'sra') {
+    input = input.map{it.size() == 1 ? [it[0], it[0]] : it}
+  }
 
-workflow runPairedWget {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
-  xs = pairedWget(input)
-  makeTsv(xs.collect())
-}
+  if(params.downloadMethod == 'wget' && params.libraryLayout == 'single'){
+    xs = singleWget(input)
+  } else if(params.downloadMethod == 'wget' && params.libraryLayout == 'paired'){
+    xs = pairedWget(input)
+  } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'single'){
+    xs = singleSra(input)
+  } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'paired'){
+    xs = pairedSra(input)
+  }
 
-workflow runSingleSra {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.size() == 1 ? [it[0], it[0]] : it}
-  xs = singleSra(input)
-  makeTsv(xs.collect())
-}
-
-workflow runPairedSra {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t").map{it.size() == 1 ? [it[0], it[0]] : it}
-  xs = pairedSra(input)
   makeTsv(xs.collect())
 }
