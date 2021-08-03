@@ -7,7 +7,7 @@ process downloadSingleWget {
   tuple val(sample), val(fastqUrl)
 
   output:
-  file("${sample}.fastq.gz")
+  tuple val(sample), file("${sample}.fastq.gz")
 
   script:
   """
@@ -21,7 +21,7 @@ process downloadPairedWget {
   tuple val(sample), val(fastqUrlR1), val(fastqUrlR2)
 
   output:
-  tuple file("${sample}_R1.fastq.gz"), file("${sample}_R2.fastq.gz")
+  tuple val(sample), file("${sample}_R1.fastq.gz"), file("${sample}_R2.fastq.gz")
 
   script:
   """
@@ -39,7 +39,7 @@ process downloadSingleSra {
   tuple val(sample), val(runAccession)
 
   output:
-  file("${sample}.fastq")
+  tuple val(sample), file("${sample}.fastq")
 
   script:
   """
@@ -55,38 +55,26 @@ process downloadPairedSra {
   tuple val(sample), val(runAccession)
 
   output:
-  tuple file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
+  tuple val(sample), file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
 
   script:
   """
   getFastqFromSraPaired $runAccession ${sample}_R1.fastq ${sample}_R2.fastq
   """
 }
-process countReads {
-  label 'count'
-  input:
-  path(readsFastq)
-
-  output:
-  path("numReads.txt")
-  
-
-  script:
-  """
-  grep -c '^@' ${readsFastq} > numReads.txt
-  """
-}
 
 process bowtie2Single {
   label 'align'
   input:
-  path(readsFastq)
+  tuple val(sample), path(readsFastq)
 
   output:
-  path("alignmentsSingle.sam")
+  tuple val(sample), path("numReads.txt"), path("alignmentsSingle.sam")
 
   script:
   """
+  grep -c '^@' ${readsFastq} > numReads.txt
+
   bowtie2 --omit-sec-seq --no-discordant --no-unal \
     -x ${params.refdb} \
     -U ${readsFastq} \
@@ -97,13 +85,15 @@ process bowtie2Single {
 process bowtie2Paired {
   label 'align'
   input:
-  tuple path(readsFastqR1), path(readsFastqR2)
+  tuple val(sample), path(readsFastqR1), path(readsFastqR2)
 
   output:
-  path("alignmentsPaired.sam")
+  tuple val(sample), path("numReads.txt"), path("alignmentsPaired.sam")
 
   script:
   """
+  grep -c '^@' ${readsFastqR1} > numReads.txt
+
   bowtie2 --omit-sec-seq --no-discordant --no-unal \
     -x ${params.refdb} \
     -1 ${readsFastqR1} \
@@ -118,12 +108,10 @@ process summarizeAlignmentsIntoMarkers {
   label 'postAlign'
 
   input:
-  val(sample)
-  path(numReadsPath)
-  path(alignmentsSam)
+  tuple val(sample), path(numReadsPath), path(alignmentsSam)
 
   output:
-  path("${sample}.markers.tsv")
+  tuple val(sample), path("${sample}.markers.tsv")
 
   script:
   """
@@ -141,12 +129,10 @@ process summarizeAlignmentsIntoTaxa {
   label 'postAlign'
 
   input:
-  val(sample)
-  path(numReadsPath)
-  path(alignmentsSam)
+  tuple val(sample), path(numReadsPath), path(alignmentsSam)
 
   output:
-  path("${sample}.taxa.tsv")
+  tuple val(sample), path("${sample}.taxa.tsv")
 
   script:
   """
@@ -165,8 +151,7 @@ process filterPostSummarize {
   label 'postAlign'
 
   input:
-  val(sample)
-  path(summarizedAlignmentsPath)
+  tuple val(sample), path(summarizedAlignmentsPath)
 
   output:
   path("${sample}.taxon-to-cpm.tsv")
@@ -194,39 +179,35 @@ process makeTsv {
   """
 }
 
-def postAlign(sample, numReadsPath, alignmentsSam) {
-  summarizeAlignmentsIntoMarkers(sample, numReadsPath, alignmentsSam)
-  sas = summarizeAlignmentsIntoTaxa(sample, numReadsPath, alignmentsSam)
-  fps = filterPostSummarize(sample, sas)
+def postAlign(sample_numReadsPath_alignmentsSam) {
+  summarizeAlignmentsIntoMarkers(sample_numReadsPath_alignmentsSam)
+  sample_sas = summarizeAlignmentsIntoTaxa(sample_numReadsPath_alignmentsSam)
+  fps = filterPostSummarize(sample_sas)
   return fps
 }
 
 def singleWget(input) {
-  reads = downloadSingleWget(input)
-  alignments = bowtie2Single(reads)
-  numReads = countReads(reads)
-  return postAlign(input.map{it[0]}, numReads, alignments)
+  sample_reads = downloadSingleWget(input)
+  sample_numReads_alignments = bowtie2Single(sample_reads)
+  return postAlign(sample_numReads_alignments)
 }
 
 def pairedWget(input) {
-  reads = downloadPairedWget(input)
-  alignments = bowtie2Paired(reads)
-  numReads = countReads(reads.map{it[0]})
-  return postAlign(input.map{it[0]}, numReads, alignments)
+  sample_reads = downloadPairedWget(input)
+  sample_numReads_alignments = bowtie2Paired(sample_reads)
+  return postAlign(sample_numReads_alignments)
 }
 
 def singleSra(input) {
-  reads = downloadSingleSra(input)
-  alignments = bowtie2Single(reads)
-  numReads = countReads(reads)
-  return postAlign(input.map{it[0]}, numReads, alignments)
+  sample_reads = downloadSingleSra(input)
+  sample_numReads_alignments = bowtie2Single(sample_reads)
+  return postAlign(sample_numReads_alignments)
 }
 
 def pairedSra(input) {
-  reads = downloadPairedSra(input)
-  alignments = bowtie2Paired(reads)
-  numReads = countReads(reads.map{it[0]})
-  return postAlign(input.map{it[0]}, numReads, alignments)
+  sample_reads = downloadPairedSra(input)
+  sample_numReads_alignments = bowtie2Paired(sample_reads)
+  return postAlign(sample_numReads_alignments)
 }
 
 workflow {
