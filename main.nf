@@ -42,8 +42,8 @@ process downloadPairedWgetUnpackBz2 {
   """
   ${params.wgetCommand} $url -O ${sample}.tar.bz2
   tar -xvjf ${sample}.tar.bz2
-  fastq_R1=$(find ${sample} -name '*1.fastq')
-  fastq_R2=$(find ${sample} -name '*2.fastq')
+  fastq_R1=\$(find ${sample} -name '*1.fastq')
+  fastq_R2=\$(find ${sample} -name '*2.fastq')
   mv -v "$fastq_R1" "${sample}_R1.fastq"
   mv -v "$fastq_R2" "${sample}_R2.fastq"
   """
