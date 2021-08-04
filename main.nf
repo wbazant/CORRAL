@@ -30,6 +30,25 @@ process downloadPairedWget {
   """
 }
 
+process downloadPairedWgetUnpackBz2 {
+  label 'download'
+  input:
+  tuple val(sample), val(url)
+
+  output:
+  tuple val(sample), file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
+
+  script:
+  """
+  ${params.wgetCommand} $url -O ${sample}.tar.bz2
+  tar -xvjf ${sample}.tar.bz2
+  fastq_R1=$(find ${sample} -name '*1.fastq')
+  fastq_R2=$(find ${sample} -name '*2.fastq')
+  mv -v "$fastq_R1" "${sample}_R1.fastq"
+  mv -v "$fastq_R2" "${sample}_R2.fastq"
+  """
+}
+
 
 process downloadSingleSra {
 
@@ -198,6 +217,12 @@ def pairedWget(input) {
   return postAlign(sample_numReads_alignments)
 }
 
+def pairedWgetUnpackBz2(input) {
+  sample_reads = downloadPairedWgetUnpackBz2(input)
+  sample_numReads_alignments = bowtie2Paired(sample_reads)
+  return postAlign(sample_numReads_alignments)
+}
+
 def singleSra(input) {
   sample_reads = downloadSingleSra(input)
   sample_numReads_alignments = bowtie2Single(sample_reads)
@@ -219,7 +244,11 @@ workflow {
   if(params.downloadMethod == 'wget' && params.libraryLayout == 'single'){
     xs = singleWget(input)
   } else if(params.downloadMethod == 'wget' && params.libraryLayout == 'paired'){
-    xs = pairedWget(input)
+    if(params.unpackMethod == 'bz2'){
+      xs = pairedWgetUnpackBz2(input)
+    } else {
+      xs = pairedWget(input)
+    }
   } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'single'){
     xs = singleSra(input)
   } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'paired'){
