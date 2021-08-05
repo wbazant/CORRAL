@@ -4,7 +4,7 @@
 This workflow is not containerised, but the dependencies are quite minimal:
 - `bowtie2`
 - Linux-flavoured OS, and system perl (any version)
-- [Marker alignments package](github.com/wbazant/marker_alignments) and its tool `summarize_marker_alignments` on `$PATH`
+- [Marker alignments package](https://github.com/wbazant/marker_alignments) and its tool `summarize_marker_alignments` on `$PATH`
 
 
 If you want to use `--downloadMethod wget` you also need `wget`. If you want to use `--downloadMethod sra` you need the SRA EUtils, with `prefetch` and `fastq-dump` on `$PATH`.
@@ -40,9 +40,9 @@ I run it like that:
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 REF_PATH="~/eukprot"
 
-nextflow pull wbazant/eukprot-alignments-nextflow -r main
+nextflow pull wbazant/marker-alignments-nextflow -r main
 
-nextflow run wbazant/eukprot-alignments-nextflow -r main \
+nextflow run wbazant/marker-alignments-nextflow -r main \
   --inputPath $DIR/in.tsv  \
   --resultDir $DIR/results \
   --downloadMethod wget \
