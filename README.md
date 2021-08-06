@@ -29,7 +29,7 @@ Optional parameters:
 
 | param         | value type        | description  |
 | ------------- | ------------- | ------------ |
-| marker_to_taxon_id_path | path to file | summarize_marker_alignments --marker_to_taxon_id_path parameter |
+| marker_to_taxon_path | path to file | summarize_marker_alignments --marker_to_taxon_path parameter |
 | unpackMethod | "bz2" | for FTP .tar.bz2 content |
 
 ### Example 
@@ -49,7 +49,7 @@ nextflow run wbazant/marker-alignments-nextflow -r main \
   --unpackMethod bz2 \
   --libraryLayout paired \
   --refdb ${REF_PATH}/ncbi_eukprot_met_arch_markers.fna \
-  --marker_to_taxon_id_path ${REF_PATH}/busco_taxid_link.txt  \
+  --marker_to_taxon_path ${REF_PATH}/busco_taxid_link.txt  \
   -c $DIR/cluster.conf \
   -with-trace -resume | tee $DIR/tee.out
 

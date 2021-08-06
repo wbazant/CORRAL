@@ -136,7 +136,7 @@ process summarizeAlignmentsIntoMarkers {
   """
   summarize_marker_alignments \
     --input ${alignmentsSam} \
-    --refdb-marker-to-taxon-id-path ${params.marker_to_taxon_id_path} \
+    --refdb-marker-to-taxon-path ${params.marker_to_taxon_path} \
     --refdb-format eukprot \
     --output-type marker_all \
     --num-reads \$(cat ${numReadsPath}) \
@@ -157,7 +157,7 @@ process summarizeAlignmentsIntoTaxa {
   """
   summarize_marker_alignments \
     --input ${alignmentsSam} \
-    --refdb-marker-to-taxon-id-path ${params.marker_to_taxon_id_path} \
+    --refdb-marker-to-taxon-path ${params.marker_to_taxon_path} \
     --refdb-format eukprot \
     --output-type taxon_all \
     --num-reads \$(cat ${numReadsPath}) \
