@@ -27,5 +27,9 @@ fi
 rm -fv $${runId}_3.fastq
 rm -v ./${runId}.sra
 
-mv -v ${runId}_1.fastq "$outputPathForward"
-mv -v ${runId}_2.fastq "$outputPathReverse"
+if [ "${runId}_1.fastq" != "$outputPathForward" ] ; then
+  mv -v ${runId}_1.fastq "$outputPathForward"
+fi
+if [ "${runId}_2.fastq" != "$outputPathReverse" ] ; then
+  mv -v ${runId}_2.fastq "$outputPathReverse"
+fi

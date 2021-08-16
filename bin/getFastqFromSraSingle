@@ -24,4 +24,6 @@ if [ ! -f "${runId}.fastq" ] ; then
 fi
 
 rm -v ./${runId}.sra
-mv -v ${runId}.fastq "$outputPath"
+if [ "${runId}.fastq" != "$outputPath" ] ; then
+  mv -v ${runId}.fastq "$outputPath"
+fi
