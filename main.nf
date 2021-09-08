@@ -147,7 +147,7 @@ process filterAlignments {
 
   script:
   """
-  ${params.samtoolsFilterCommand} ${alignmentsSam} > ${sample}.filteredAlignments.sam
+  ${params.samtoolsFilterCommand} ${alignmentsSam} -o ${sample}.filteredAlignments.sam
   """
 }
 
