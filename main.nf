@@ -120,6 +120,36 @@ process bowtie2Paired {
     -S alignmentsPaired.sam
   """
 }
+process alignmentStats {
+  publishDir "${params.resultDir}/alignmentStats"
+  label 'samtools'
+
+  input:
+  tuple val(sample), path(numReadsPath), path(alignmentsSam)
+
+  output:
+  tuple val(sample), path("${sample}.alignmentStats.txt")
+
+  script:
+  """
+  samtools stats ${alignmentsSam} > ${sample}.alignmentStats.txt
+  """
+}
+
+process filterAlignments {
+  label 'postAlign'
+
+  input:
+  tuple val(sample), path(numReadsPath), path(alignmentsSam)
+
+  output:
+  tuple val(sample), path(numReadsPath), path("${sample}.filteredAlignments.sam")
+
+  script:
+  """
+  ${params.samtoolsFilterCommand} ${alignmentsSam} > ${sample}.filteredAlignments.sam
+  """
+}
 
 process summarizeAlignmentsIntoMarkers {
   publishDir "${params.resultDir}/markers"
@@ -199,8 +229,10 @@ process makeTsv {
 }
 
 def postAlign(sample_numReadsPath_alignmentsSam) {
-  summarizeAlignmentsIntoMarkers(sample_numReadsPath_alignmentsSam)
-  sample_sas = summarizeAlignmentsIntoTaxa(sample_numReadsPath_alignmentsSam)
+  alignmentStats(sample_numReadsPath_alignmentsSam)
+  sample_numReadsPath_filteredAlignmentsSam = filterAlignments(sample_numReadsPath_alignmentsSam)
+  summarizeAlignmentsIntoMarkers(sample_numReadsPath_filteredAlignmentsSam)
+  sample_sas = summarizeAlignmentsIntoTaxa(sample_numReadsPath_filteredAlignmentsSam)
   fps = filterPostSummarize(sample_sas)
   return fps
 }

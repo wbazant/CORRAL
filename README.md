@@ -5,6 +5,7 @@ This workflow is not containerised, but the dependencies are quite minimal:
 - `bowtie2`
 - Linux-flavoured OS, and system perl (any version)
 - [Marker alignments package](https://github.com/wbazant/marker_alignments) and its tool `summarize_marker_alignments` on `$PATH`
+- `samtools`
 
 
 If you want to use `--downloadMethod wget` you also need `wget`. If you want to use `--downloadMethod sra` you need the SRA EUtils, with `prefetch` and `fastq-dump` on `$PATH`.
@@ -32,6 +33,7 @@ Optional parameters:
 | marker_to_taxon_path | path to file | summarize_marker_alignments --marker_to_taxon_path parameter |
 | unpackMethod | "bz2" | for FTP .tar.bz2 content |
 
+Additionally, `samtoolsFilterCommand` looks at read matches, not quality scores -  set it to `samtools view -q 30` to replicate EukDetect behaviour.
 ### Example 
 I run it like that:
 
