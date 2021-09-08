@@ -9,12 +9,14 @@ open(my $fh, "<", $path) or die "$!: $path";
 
 while(<$fh>){
   if ($. == 1){
-    die "Header not recognised: $_" unless $_ eq "taxon\tcoverage\tcpm\ttaxon_num_reads\ttaxon_num_markers\n";
+    chomp;
+    my @header = split "\t", $_;
+    die "Header not recognised: $_" unless $header[0] eq "taxon" && $header[2] eq "cpm" && $header[4] eq "taxon_num_markers";
     say join ("\t", "taxon", "$name");
   } else{
     chomp;
-    my ($taxon, $coverage, $cpm, $taxonNumReads, $taxonNumMarkers) = split "\t";
-    if($taxonNumReads >= 4.0 && $taxonNumMarkers >= 2){
+    my ($taxon, $_1, $cpm, $_3, $taxonNumMarkers) = split "\t";
+    if($taxonNumMarkers >= 2){
       say join("\t", $taxon, $cpm);
     }
   }
