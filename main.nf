@@ -122,7 +122,7 @@ process bowtie2Paired {
 }
 process alignmentStats {
   publishDir "${params.resultDir}/alignmentStats"
-  label 'samtools'
+  label 'stats'
 
   input:
   tuple val(sample), path(numReadsPath), path(alignmentsSam)
@@ -132,83 +132,29 @@ process alignmentStats {
 
   script:
   """
-  samtools stats ${alignmentsSam} > ${sample}.alignmentStats.txt
+  ${params.alignmentStatsCommand} ${alignmentsSam} > ${sample}.alignmentStats.txt
   """
 }
 
-process filterAlignments {
+process summarizeAlignments{
+  publishDir "${params.resultDir}/summarizedAlignments"
   label 'postAlign'
 
   input:
   tuple val(sample), path(numReadsPath), path(alignmentsSam)
 
   output:
-  tuple val(sample), path(numReadsPath), path("${sample}.filteredAlignments.sam")
+  path("${sample}.taxa.tsv
 
   script:
   """
-  ${params.samtoolsFilterCommand} ${alignmentsSam} -o ${sample}.filteredAlignments.sam
-  """
-}
-
-process summarizeAlignmentsIntoMarkers {
-  publishDir "${params.resultDir}/markers"
-
-  label 'postAlign'
-
-  input:
-  tuple val(sample), path(numReadsPath), path(alignmentsSam)
-
-  output:
-  tuple val(sample), path("${sample}.markers.tsv")
-
-  script:
-  """
-  summarize_marker_alignments \
+  ${params.summarizeAlignmentsCommand} \
     --input ${alignmentsSam} \
-    --refdb-marker-to-taxon-path ${params.marker_to_taxon_path} \
-    --refdb-format eukprot \
-    --output-type marker_all \
-    --num-reads \$(cat ${numReadsPath}) \
-    --output ${sample}.markers.tsv 
-  """
-}
-process summarizeAlignmentsIntoTaxa {
-  publishDir "${params.resultDir}/taxa"
-  label 'postAlign'
-
-  input:
-  tuple val(sample), path(numReadsPath), path(alignmentsSam)
-
-  output:
-  tuple val(sample), path("${sample}.taxa.tsv")
-
-  script:
-  """
-  summarize_marker_alignments \
-    --input ${alignmentsSam} \
-    --refdb-marker-to-taxon-path ${params.marker_to_taxon_path} \
+    --refdb-marker-to-taxon-path ${params.markerToTaxonPath} \
     --refdb-format eukprot \
     --output-type taxon_all \
     --num-reads \$(cat ${numReadsPath}) \
     --output ${sample}.taxa.tsv 
-  """
-}
-
-process filterPostSummarize {
-  publishDir "${params.resultDir}/taxon-to-cpm"
-  label 'postAlign'
-
-  input:
-  tuple val(sample), path(summarizedAlignmentsPath)
-
-  output:
-  path("${sample}.taxon-to-cpm.tsv")
-
-  script:
-  """
-  filterAlignmentSummaries.pl ${sample} ${summarizedAlignmentsPath} \
-    > ${sample}.taxon-to-cpm.tsv
   """
 }
 
@@ -217,24 +163,20 @@ process makeTsv {
   label 'postAlign'
 
   input:
-  file("*.taxon-to-cpm.tsv")
+  file("*.taxa.tsv")
 
   output:
   file("cpms.tsv")
 
   script:
   """
-  makeTsv.pl . .taxon-to-cpm.tsv > cpms.tsv
+  makeTsv.pl . .taxa.tsv > cpms.tsv
   """
 }
 
 def postAlign(sample_numReadsPath_alignmentsSam) {
   alignmentStats(sample_numReadsPath_alignmentsSam)
-  sample_numReadsPath_filteredAlignmentsSam = filterAlignments(sample_numReadsPath_alignmentsSam)
-  summarizeAlignmentsIntoMarkers(sample_numReadsPath_filteredAlignmentsSam)
-  sample_sas = summarizeAlignmentsIntoTaxa(sample_numReadsPath_filteredAlignmentsSam)
-  fps = filterPostSummarize(sample_sas)
-  return fps
+  return summarizeAlignments(sample_numReadsPath_filteredAlignmentsSam)
 }
 
 def singleWget(input) {
