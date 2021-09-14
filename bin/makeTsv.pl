@@ -18,10 +18,14 @@ die "No files in input directory" unless @files;
 my %sampleLabels;
 
 my %result;
-
 for my $file (@files){
   open(my $fh, "<", "$dir/$file") or die "$!: $file";
-  my ($sample) = $file =~ m{(.*)$pattern};
+  my $name = $file;
+  if( -l "$dir/$file" ){
+    my $f = readlink "$dir/$file";
+    $name = basename $f;
+  }
+  my ($sample) = $name =~ m{(.*)$pattern};
   $sampleLabels{$sample}++;
   die $file unless $sample;
   my $cpmColumnIndex;
