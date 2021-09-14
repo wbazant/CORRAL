@@ -144,7 +144,7 @@ process summarizeAlignments{
   tuple val(sample), path(numReadsPath), path(alignmentsSam)
 
   output:
-  path("${sample}.taxa.tsv
+  path("${sample}.taxa.tsv")
 
   script:
   """
@@ -176,7 +176,7 @@ process makeTsv {
 
 def postAlign(sample_numReadsPath_alignmentsSam) {
   alignmentStats(sample_numReadsPath_alignmentsSam)
-  return summarizeAlignments(sample_numReadsPath_filteredAlignmentsSam)
+  return summarizeAlignments(sample_numReadsPath_alignmentsSam)
 }
 
 def singleWget(input) {
