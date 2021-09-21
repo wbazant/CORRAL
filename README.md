@@ -3,7 +3,11 @@
 ## Installation
 This workflow is not containerised, but the dependencies are quite minimal:
 - `bowtie2`
-- [Marker alignments package](https://github.com/wbazant/marker_alignments) and its tool `marker_alignments` on `$PATH`
+- [Marker alignments package](https://github.com/wbazant/marker_alignments) and its tool `marker_alignments`.
+
+Additionally, `samtools stats` is the default and recommended for alignment stats.
+
+By default, `bowtie2`, `marker_alignments` and `samtools` are assumed to be on `$PATH` but you can provide a path to an executable in the pipeline config.
 
 
 If you want to use `--downloadMethod wget` you also need `wget`. If you want to use `--downloadMethod sra` you need the SRA EUtils, with `prefetch` and `fastq-dump` on `$PATH`.
@@ -12,7 +16,6 @@ If you want to use `--downloadMethod wget` you also need `wget`. If you want to 
 
 You also need a `bowtie2` reference database of taxonomic markers, like ChocoPhlAn or EukDetect.
 
-Additionally, `samtools stats` is the default and recommended for alignment stats.
 
 ## Usage
 
@@ -25,6 +28,7 @@ Main parameters:
 | libraryLayout | "single" / "paired" | |
 | resultDir  | path to dir  | publish directory |
 | refdb | path pattern | bowtie2 -x parameter |
+| bowtie2Command | shell | Run bowtie2 |
 | alignmentStatsCommand | shell | `samtools stats` or other |
 | summarizeAlignmentsCommand | shell | path to `marker_alignments` optionally with filter arguments to use|
 

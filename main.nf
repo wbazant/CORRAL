@@ -94,7 +94,7 @@ process bowtie2Single {
   """
   grep -c '^@' ${readsFastq} > numReads.txt
 
-  bowtie2 --omit-sec-seq --no-discordant --no-unal \
+  ${params.bowtie2Command} \
     -x ${params.refdb} \
     -U ${readsFastq} \
     -S alignmentsSingle.sam 
@@ -113,7 +113,7 @@ process bowtie2Paired {
   """
   grep -c '^@' ${readsFastqR1} > numReads.txt
 
-  bowtie2 --omit-sec-seq --no-discordant --no-unal \
+  ${params.bowtie2Command} \
     -x ${params.refdb} \
     -1 ${readsFastqR1} \
     -2 ${readsFastqR2} \
