@@ -17,7 +17,7 @@ if [ ! -f "./${runId}.sra" ] ; then
   exit 1
 fi
 
-fastq-dump -B --defline-seq '@$si/$ri' --defline-qual '+' --split-files ./${runId}.sra
+fastq-dump -B --defline-seq '@$si/$ri' --defline-qual '+' --split-files --minReadLen 0 ./${runId}.sra
 
 if [ ! -f "${runId}_1.fastq" -o ! -f "${runId}_2.fastq" ] ; then
   echo "fastq-dump didn't work as expected? ${runId}_{1,2}.fastq expected"
