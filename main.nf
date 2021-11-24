@@ -1,6 +1,5 @@
 nextflow.enable.dsl=2
 
-
 process downloadSingleWget {
   label 'download'
   input:
@@ -209,6 +208,16 @@ def pairedSra(input) {
   return postAlign(sample_numReads_alignments)
 }
 
+def singleLocal(input) {
+  sample_numReads_alignments = bowtie2Single(input)
+  return postAlign(sample_numReads_alignments)
+}
+
+def pairedLocal(input) {
+  sample_numReads_alignments = bowtie2Paired(input)
+  return postAlign(sample_numReads_alignments)
+}
+
 workflow {
   input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   if (params.downloadMethod == 'sra') {
@@ -227,6 +236,10 @@ workflow {
     xs = singleSra(input)
   } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'paired'){
     xs = pairedSra(input)
+  } else if(params.downloadMethod == 'local' && params.libraryLayout == 'single'){
+    xs = singleLocal(input)
+  } else if(params.downloadMethod == 'local' && params.libraryLayout == 'paired'){
+    xs = pairedLocal(input)
   }
 
   makeTsv(xs.collect())
