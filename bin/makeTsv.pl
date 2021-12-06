@@ -6,8 +6,10 @@ use List::MoreUtils qw/first_index/;
 use File::Basename;
 
 
-my ($dir, $pattern) = @ARGV;
-die "Usage: $0 dir pattern" unless -d $dir && $pattern;
+my ($dir, $pattern, $chosenColumn) = @ARGV;
+die "Usage: $0 dir pattern <column|cpm>" unless -d $dir && $pattern;
+
+$chosenColumn //= 'cpm';
 
 opendir(my $dh, $dir) || die "Can't opendir $dir: $!";
 my @files = grep {$_=~m{$pattern}} readdir($dh);
@@ -28,18 +30,18 @@ for my $file (@files){
   my ($sample) = $name =~ m{(.*)$pattern};
   $sampleLabels{$sample}++;
   die $file unless $sample;
-  my $cpmColumnIndex;
+  my $chosenColumnIndex;
   while(<$fh>){
     chomp;
     my @line = split "\t";
 
     if ($. == 1){
-      $cpmColumnIndex = first_index {$_ eq 'cpm'} @line;
-      die "$file Header not recognised: $_" unless $cpmColumnIndex > -1;
+      $chosenColumnIndex = first_index {$_ eq $chosenColumn} @line;
+      die "$file Header not recognised: $_" unless $chosenColumnIndex > -1;
     } else{
       my $taxon = $line[0];
-      my $cpm = $line[$cpmColumnIndex];
-      $result{$taxon}{$sample} = $cpm;
+      my $chosenValue = $line[$chosenColumnIndex];
+      $result{$taxon}{$sample} = $chosenValue;
     }
   }
 }

@@ -24,7 +24,7 @@ Main parameters:
 | param         | value type        | description  |
 | ------------- | ------------- | ------------ |
 | inputPath  | path to file | TSV: sample ID,fastq URL or run ID, [second URL for paired reads] |
-| downloadMethod | "wget" / "sra" | |
+| downloadMethod | "wget" / "sra" / "local" | |
 | libraryLayout | "single" / "paired" | |
 | resultDir  | path to dir  | publish directory |
 | refdb | path pattern | bowtie2 -x parameter |
