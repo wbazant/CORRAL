@@ -165,11 +165,11 @@ process makeTsv {
   file("*.taxa.tsv")
 
   output:
-  file("cpms.tsv")
+  file("${params.summaryColumn}.${params.summaryFormat}.tsv")
 
   script:
   """
-  makeTsv.pl . .taxa.tsv > cpms.tsv
+  makeTsv.pl . .taxa.tsv ${params.summaryColumn} ${params.summaryFormat} > ${params.summaryColumn}.${params.summaryFormat}.tsv
   """
 }
 
