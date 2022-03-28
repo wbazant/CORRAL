@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 stringWithRunAccession="$1"
 outputPathForward="$2"
 outputPathReverse="$3"
@@ -22,6 +23,32 @@ fastq-dump -B --defline-seq '@$si/$ri' --defline-qual '+' --split-files --minRea
 if [ ! -f "${runId}_1.fastq" -o ! -f "${runId}_2.fastq" ] ; then
   echo "fastq-dump didn't work as expected? ${runId}_{1,2}.fastq expected"
   exit 1
+fi
+
+num_reads_1=$(grep -c '^\+$' ${runId}_1.fastq)
+num_reads_2=$(grep -c '^\+$' ${runId}_2.fastq)
+if [ $num_reads_1 != $num_reads_2 ]; then
+  if [ $( expr $num_reads_2 - $num_reads_1 ) -gt 1000 -o $( expr $num_reads_1 - $num_reads_2 ) -gt 1000 ]; then
+    echo "More difference between numbers of reads ($num_reads_1 in ${runId}_1.fastq, $num_reads_2 in ${runId}_2.fastq) than the tolerated 1000. Will not attempt to fix."
+    exit 1
+  fi
+  echo "Will attempt to fix the files by only taking the common reads"
+  keepOnlyMatchingPairedReads ${runId}_1.fastq{,.next} ${runId}_2.fastq{,.next}
+  num_reads_1_next=$(grep -c '^\+$' ${runId}_1.fastq.next)
+  if [ $( expr $num_reads_1_next - $num_reads_1 ) -gt 1000 ] ; then
+     echo "Error - lost more than a thousand reads in forward file - $num_reads_1 -> $num_reads_1_next reads"
+     exit 1
+  fi
+  num_reads_2_next=$(grep -c '^\+$' ${runId}_2.fastq.next)
+  if [ $( expr $num_reads_2_next - $num_reads_2 ) -gt 1000 ] ; then
+     echo "Error - lost more than a thousand reads in forward file - $num_reads_2 -> $num_reads_2_next reads"
+     exit 1
+  fi
+  echo "Num reads forward: $num_reads_1 -> $num_reads_1_next, reverse: $num_reads_2 -> $num_reads_2_next - looks like we've fixed it"
+
+  mv -v ${runId}_1.fastq{.next,}
+  mv -v ${runId}_2.fastq{.next,}
+
 fi
 
 rm -fv $${runId}_3.fastq

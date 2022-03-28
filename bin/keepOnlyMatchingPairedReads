@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+$/ = "\n\@";
+my $u = "Usage: $0 forwardFrom forwardTo reverseFrom reverseTo";
+
+open(my $forwardFrom, "<", $ARGV[0]) or die "$!: $ARGV[0] $u";
+open(my $forwardTo, ">", $ARGV[1]) or die "$!: $ARGV[1] $u";
+open(my $reverseFrom, "<", $ARGV[2]) or die "$!: $ARGV[2] $u";
+open(my $reverseTo, ">", $ARGV[3]) or die "$!: $ARGV[3] $u";
+
+my ($forwardRead, $reverseRead, $forwardReadName, $reverseReadName);
+my $numKeptReads = 0;
+my $forwardNumDiscardedReads = 0;
+my $reverseNumDiscardedReads = 0;
+sub nextForward {
+  $forwardRead = <$forwardFrom>;
+  goto END unless $forwardRead;
+  $forwardRead =~ s{^\@}{};
+  chomp $forwardRead;
+  $forwardRead =~ m{^(\d+)/1} or die $forwardRead;
+  $forwardReadName = $1;
+}
+sub nextReverse {
+  $reverseRead = <$reverseFrom>;
+  goto END unless $reverseRead;
+  $reverseRead =~ s{^\@}{};
+  chomp $reverseRead;
+  $reverseRead =~ m{^(\d+)/2} or die $reverseRead;
+  $reverseReadName = $1;
+}
+
+nextForward();
+nextReverse();
+
+while ($forwardRead or $reverseRead){
+  if ($forwardReadName == $reverseReadName){
+    print $forwardTo "\@$forwardRead\n";
+    print $reverseTo "\@$reverseRead\n";
+    nextForward();
+    nextReverse();
+    $numKeptReads++;
+  
+  } elsif ($forwardReadName < $reverseReadName) {
+    nextForward();
+  } else {
+    nextReverse();
+  }
+}
+END:
+die unless $numKeptReads;
