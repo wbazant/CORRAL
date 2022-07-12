@@ -15,3 +15,9 @@ RUN apt-get install -y \
   cpanminus
   
 RUN pip install marker_alignments && cpanm List::MoreUtils
+
+COPY /bin/* /usr/bin/
+
+RUN cd /usr/bin/ && chmod +x *
+
+WORKDIR /work
