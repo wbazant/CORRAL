@@ -1,4 +1,18 @@
+import nextflow.splitter.CsvSplitter
+
 nextflow.enable.dsl=2
+
+def fetchRunAccessions( tsv ) {
+    def splitter = new CsvSplitter().options( header:true, sep:'\t' )
+    def reader = new BufferedReader( new FileReader( tsv ) )
+    splitter.parseHeader( reader )
+    List<String> run_accessions = []
+    Map<String,String> row
+    while( row = splitter.fetchRecord( reader ) ) {
+       run_accessions.add( row['run_accession'] )
+    }
+    return run_accessions
+}
 
 process downloadSingleWget {
   label 'download'
@@ -49,35 +63,34 @@ process downloadPairedWgetUnpackBz2 {
 }
 
 
-process downloadSingleSra {
+process prepSingleSra {
 
-  label 'download'
+  label 'prep'
 
   input:
-  tuple val(sample), val(runAccession)
+  tuple val(sample), path(runAccession)
 
   output:
-  tuple val(sample), file("${sample}.fastq")
+  tuple val(sample), path("${sample}.fastq")
 
-  script:
   """
-  getFastqFromSraSingle $runAccession ${sample}.fastq
+  gzip -d --force $runAccession
   """
 }
 
-process downloadPairedSra {
+process prepPairedSra {
 
-  label 'download'
+  label 'prep'
 
   input:
-  tuple val(sample), val(runAccession)
+  tuple val(sample), path(runAccession)
 
   output:
-  tuple val(sample), file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
+  tuple val(sample), path("${sample}_1.fastq"), path("${sample}_2.fastq")
 
-  script:
   """
-  getFastqFromSraPaired $runAccession ${sample}_R1.fastq ${sample}_R2.fastq
+  gzip -d --force ${runAccession[0]} 
+  gzip -d --force ${runAccession[1]}
   """
 }
 
@@ -197,13 +210,13 @@ def pairedWgetUnpackBz2(input) {
 }
 
 def singleSra(input) {
-  sample_reads = downloadSingleSra(input)
+  sample_reads = prepSingleSra(input)
   sample_numReads_alignments = bowtie2Single(sample_reads)
   return postAlign(sample_numReads_alignments)
 }
 
 def pairedSra(input) {
-  sample_reads = downloadPairedSra(input)
+  sample_reads = prepPairedSra(input)
   sample_numReads_alignments = bowtie2Paired(sample_reads)
   return postAlign(sample_numReads_alignments)
 }
@@ -219,12 +232,12 @@ def pairedLocal(input) {
 }
 
 workflow {
-  input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
   if (params.downloadMethod == 'sra') {
-    input = input.map{it.size() == 1 ? [it[0], it[0]] : it}
+    accessions = fetchRunAccessions(params.inputPath)
+    input = Channel.fromSRA( accessions, apiKey: params.apiKey, protocol: "http" )
   }
-
   if(params.downloadMethod == 'wget' && params.libraryLayout == 'single'){
+    input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t") 
     xs = singleWget(input)
   } else if(params.downloadMethod == 'wget' && params.libraryLayout == 'paired'){
     if(params.unpackMethod == 'bz2'){
