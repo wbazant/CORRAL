@@ -241,8 +241,10 @@ workflow {
     xs = singleWget(input)
   } else if(params.downloadMethod == 'wget' && params.libraryLayout == 'paired'){
     if(params.unpackMethod == 'bz2'){
+      input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
       xs = pairedWgetUnpackBz2(input)
     } else {
+      input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
       xs = pairedWget(input)
     }
   } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'single'){
