@@ -14,55 +14,6 @@ def fetchRunAccessions( tsv ) {
     return run_accessions
 }
 
-process downloadSingleWget {
-  label 'download'
-  input:
-  tuple val(sample), val(fastqUrl)
-
-  output:
-  tuple val(sample), file("${sample}.fastq.gz")
-
-  script:
-  """
-  ${params.wgetCommand} $fastqUrl -O ${sample}.fastq.gz
-  """
-}
-
-process downloadPairedWget {
-  label 'download'
-  input:
-  tuple val(sample), val(fastqUrlR1), val(fastqUrlR2)
-
-  output:
-  tuple val(sample), file("${sample}_R1.fastq.gz"), file("${sample}_R2.fastq.gz")
-
-  script:
-  """
-  ${params.wgetCommand} $fastqUrlR1 -O ${sample}_R1.fastq.gz
-  ${params.wgetCommand} $fastqUrlR2 -O ${sample}_R2.fastq.gz
-  """
-}
-
-process downloadPairedWgetUnpackBz2 {
-  label 'download'
-  input:
-  tuple val(sample), val(url)
-
-  output:
-  tuple val(sample), file("${sample}_R1.fastq"), file("${sample}_R2.fastq")
-
-  script:
-  """
-  ${params.wgetCommand} $url -O ${sample}.tar.bz2
-  tar -xvjf ${sample}.tar.bz2 --transform 's!^[^/]\\+\\(\$\\|/\\)!tar_out\\1!'
-  fastq_R1=\$(find tar_out -name '*1.fastq')
-  fastq_R2=\$(find tar_out -name '*2.fastq')
-  mv -v "\$fastq_R1" "${sample}_R1.fastq"
-  mv -v "\$fastq_R2" "${sample}_R2.fastq"
-  """
-}
-
-
 process prepSingleSra {
 
   label 'prep'
@@ -113,6 +64,7 @@ process bowtie2Single {
   """
 
 }
+
 process bowtie2Paired {
   label 'align'
   input:
@@ -132,6 +84,7 @@ process bowtie2Paired {
     -S alignmentsPaired.sam
   """
 }
+
 process alignmentStats {
   publishDir "${params.resultDir}/alignmentStats"
   label 'stats'
@@ -191,24 +144,6 @@ def postAlign(sample_numReadsPath_alignmentsSam) {
   return summarizeAlignments(sample_numReadsPath_alignmentsSam)
 }
 
-def singleWget(input) {
-  sample_reads = downloadSingleWget(input)
-  sample_numReads_alignments = bowtie2Single(sample_reads)
-  return postAlign(sample_numReads_alignments)
-}
-
-def pairedWget(input) {
-  sample_reads = downloadPairedWget(input)
-  sample_numReads_alignments = bowtie2Paired(sample_reads)
-  return postAlign(sample_numReads_alignments)
-}
-
-def pairedWgetUnpackBz2(input) {
-  sample_reads = downloadPairedWgetUnpackBz2(input)
-  sample_numReads_alignments = bowtie2Paired(sample_reads)
-  return postAlign(sample_numReads_alignments)
-}
-
 def singleSra(input) {
   sample_reads = prepSingleSra(input)
   sample_numReads_alignments = bowtie2Single(sample_reads)
@@ -236,18 +171,7 @@ workflow {
     accessions = fetchRunAccessions(params.inputPath)
     input = Channel.fromSRA( accessions, apiKey: params.apiKey, protocol: "http" )
   }
-  if(params.downloadMethod == 'wget' && params.libraryLayout == 'single'){
-    input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t") 
-    xs = singleWget(input)
-  } else if(params.downloadMethod == 'wget' && params.libraryLayout == 'paired'){
-    if(params.unpackMethod == 'bz2'){
-      input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
-      xs = pairedWgetUnpackBz2(input)
-    } else {
-      input = Channel.fromPath(params.inputPath).splitCsv(sep: "\t")
-      xs = pairedWget(input)
-    }
-  } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'single'){
+  if(params.downloadMethod == 'sra' && params.libraryLayout == 'single'){
     xs = singleSra(input)
   } else if(params.downloadMethod == 'sra' && params.libraryLayout == 'paired'){
     xs = pairedSra(input)
@@ -256,6 +180,5 @@ workflow {
   } else if(params.downloadMethod == 'local' && params.libraryLayout == 'paired'){
     xs = pairedLocal(input)
   }
-
   makeTsv(xs.collect())
 }
